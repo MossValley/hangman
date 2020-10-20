@@ -1,13 +1,55 @@
 
-class Game
-  def initialize
+require 'erb'
+require 'pry'
+
+class Gallows
+  attr_accessor :secret_word, :letter_guessed, :display_secret, :wrong_guesses
+  attr_reader :dictionary, :counter
+
+  def initialize (secret="", display="_", counter=10, wrong_guesses=[])
     @dictionary = File.readlines "5desk.txt"
-    @secret_word = ''
+    @secret_word = secret
     @letter_guessed = ''
-    @display_secret = '_'
-    @counter = 10
-    @incorrect_guesses = []
+    @display_secret = display
+    @counter = counter
+    @wrong_guesses = wrong_guesses
+    select_secret_word
   end
+
+  def select_secret_word
+    if @secret_word == ""
+      secret_word_generator
+    end
+    puts @display_secret
+  end
+
+  def save_status
+    save_template = File.read "savetemplate.erb"
+    save_file = ERB.new save_template
+    save_status = save_file.result(binding)
+    puts save_status
+    save_status
+  end
+
+  def player_input
+    loop do 
+      print "Guess a letter: "
+      @letter_guessed = gets.chomp.downcase
+      break if @letter_guessed.match?(/[a-z]/) && @letter_guessed.length == 1
+      break if @letter_guessed == 'save' || @letter_guessed == 'exit'
+      puts "Incorrect input."
+    end
+    return @letter_guessed
+  end
+
+  def player_guess(guess)
+    @letter_guessed = guess
+    check_guess(@letter_guessed)
+    puts @display_secret
+    return end_of_game
+  end
+
+  private 
 
   def randomize(dictionary)
     rand(dictionary.length)
@@ -20,22 +62,12 @@ class Game
     end
 
     @secret_word
+    @display_secret = "_" * @secret_word.length
   end
 
   def guesses_remaining
     @counter -= 1
-    puts "Turns remainding: #{@counter}"
-  end
-
-  def player_guess
-    loop do 
-      print "Guess a letter: "
-      @letter_guessed = gets.chomp.downcase
-      break if @letter_guessed.match?(/[a-z]/) && @letter_guessed.length == 1
-      puts "Incorrect input."
-    end
-    check_guess(@letter_guessed)
-    puts @display_secret
+    puts "Guesses remainding: #{@counter}"
   end
 
   def check_guess(letter)
@@ -44,7 +76,6 @@ class Game
     else
       puts "Nope, try again"
       update_incorrect(letter)
-      guesses_remaining
     end
   end
 
@@ -57,47 +88,91 @@ class Game
   end
 
   def update_incorrect(letter)
-    if !(@incorrect_guesses.include? letter)
-      @incorrect_guesses.push(letter)
+    if !(@wrong_guesses.include? letter)
+      @wrong_guesses.push(letter)
+      guesses_remaining
+    else 
+      puts "Already guessed!"
     end
-    puts "Letters guessed: #{@incorrect_guesses.join(', ')}"
+    puts "Letters guessed: #{@wrong_guesses.join(', ')}"
+  end
+  
+  def end_of_game
+    case true
+    when @counter == 0
+      puts "Game over"
+      puts "The word was #{@secret_word}"
+      return true
+    when !(@display_secret.include? '_')
+      puts "You win!"
+      return true
+    else
+      return false
+    end
   end
 
-  def play_game
-    secret_word_generator
-    @display_secret = "_" * @secret_word.length
-    puts @display_secret
+end
+
+class Game
+  attr_accessor :game
+  def self.init
+    start_game
+  end
+
+  def self.start_game
+    print "Do you wish to load a game? Y/N: "
+    response = gets.chomp.downcase
+    if response == 'y'
+      load_game
+    else 
+      new_game
+    end
+  end
+
+  def self.new_game
+    @game = Gallows.new
+    play_game
+  end
+
+  def self.load_game
+    if File.exist? 'savegame.txt'
+      saved = File.read('savegame.txt').split
+      @game = Gallows.new(saved[0], saved[1], (saved[2].to_i), saved[3].split(//))
+      play_game
+    else
+      puts "There is no saved game to load"
+      puts "Starting new game"
+      new_game
+    end
+  end
+
+  def self.save_game
+    puts "Saving game"
+    game_status = @game.save_status
+    File.open('savegame.txt', 'w') do |file|
+      file.puts game_status
+    end
+    exit_game
+  end
+
+  def self.play_game
     game_over = false
     while game_over == false
-      case true
-      when @counter == 0
-        puts "Game over"
-        game_over = true
-      when !(@display_secret.include? '_')
-        puts "You win!"
-        game_over = true
+      player = @game.player_input
+      if player == 'save'
+        save_game
+      elsif player == 'exit'
+        exit_game
       else
-        player_guess
-        game_over = false
+        game_over = @game.player_guess(player)
       end
     end
   end
-end
-
-class Player
-  def initialize 
-    @counter = 10
-  end
-
-  def guesses_remaining
-    @counter -= 1
-  end
-
-  def guess_letter
+  
+  def self.exit_game
+    puts "Closing program"
+    exit
   end
 end
 
-new_word = Game.new
-word = new_word.secret_word_generator
-p word
-new_word.play_game
+Game.init
