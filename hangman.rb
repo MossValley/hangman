@@ -1,4 +1,4 @@
-
+require 'yaml'
 require 'erb'
 require 'pry'
 
@@ -136,8 +136,7 @@ class Game
 
   def self.load_game
     if File.exist? 'savegame.txt'
-      saved = File.read('savegame.txt').split
-      @game = Gallows.new(saved[0], saved[1], (saved[2].to_i), saved[3].split(//))
+      @game = load_from_yaml('savegame.txt')
       play_game
     else
       puts "There is no saved game to load"
@@ -148,7 +147,7 @@ class Game
 
   def self.save_game
     puts "Saving game"
-    game_status = @game.save_status
+    game_status = save_as_yaml(@game)
     File.open('savegame.txt', 'w') do |file|
       file.puts game_status
     end
@@ -172,6 +171,20 @@ class Game
   def self.exit_game
     puts "Closing program"
     exit
+  end
+
+  def self.save_as_yaml(game)
+    YAML.dump( {
+      secret_word: game.secret_word,
+      display_secret: game.display_secret,
+      counter: game.counter,
+      wrong_guesses: game.wrong_guesses
+    })
+  end
+
+  def self.load_from_yaml(file)
+    data = YAML.load_file file
+    Gallows.new(data[:secret_word], data[:display_secret], data[:counter], data[:wrong_guesses])
   end
 end
 

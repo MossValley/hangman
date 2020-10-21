@@ -11,7 +11,7 @@ Dictionary file obtained from scrapmaker.com's word list: https://www.scrapmaker
 * If opting to load game will load last saved game
 * Can exit game by typing 'exit'
 * Game will keep track of guesses and show which letters guessed - won't count letters already guessed again
-* If guesses remaining becomes zero will inform player of loss and show anwer
+* If guesses remaining becomes zero will inform player of loss and show answer
 
 **Extra features to add?**
 * Drawing an actual stick man for incorrect guesses
